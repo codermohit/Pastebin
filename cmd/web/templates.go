@@ -15,7 +15,7 @@ type templateData struct {
 func newTemplateCache() (map[string]*template.Template, error) {
 	cache := map[string]*template.Template{}
 
-	pages, err := filepath.Glob("./ui/html/pages/*.tmpl")
+	pages, err := filepath.Glob("./ui/html/pages/*.html")
 	if err != nil {
 		return nil, err
 	}
@@ -23,8 +23,8 @@ func newTemplateCache() (map[string]*template.Template, error) {
 	for _, page := range pages {
 		name := filepath.Base(page) //will return the name of the html files like home.html.tmpl
 		files := []string{
-			"./ui/html/base.html.tmpl",
-			"./ui/html/partials/nav.html.tmpl",
+			"./ui/html/base.tmpl.html",
+			"./ui/html/partials/nav.tmpl.html",
       page,
 		}
 
