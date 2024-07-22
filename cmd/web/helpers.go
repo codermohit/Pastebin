@@ -1,10 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
+	"time"
 )
-
 
 //logs method and attribute of the request sent by the user, and sends generic 500 Internal server error response
 func (app *application) serverError(w http.ResponseWriter, r *http.Request, err error){
@@ -34,11 +35,23 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
     return
   }
 
-  w.WriteHeader(status)
+  buf := new(bytes.Buffer)
   
-  err := ts.ExecuteTemplate(w, "base", data)
+  err := ts.ExecuteTemplate(buf, "base", data)
   if err != nil {
-    app.serverError(w, r , err)
+    fmt.Println("Throwing error ")
+    app.serverError(w, r, err)
+    return
   }
 
+  //if there is no error then set the header to status OK
+  w.WriteHeader(status)
+
+  buf.WriteTo(w)
+}
+
+func (app *application) newTemplateData(r *http.Request) templateData{
+  return templateData{
+    CurrentYear: time.Now().Year(),
+  }
 }
