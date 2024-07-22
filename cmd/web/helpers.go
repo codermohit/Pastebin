@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+
 //logs method and attribute of the request sent by the user, and sends generic 500 Internal server error response
 func (app *application) serverError(w http.ResponseWriter, r *http.Request, err error){
   var (
@@ -16,10 +17,12 @@ func (app *application) serverError(w http.ResponseWriter, r *http.Request, err 
   http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 
+
 //used when the problem is with the request sent by the user 
 func (app *application) clientError(w http.ResponseWriter, status int){
   http.Error(w, http.StatusText(status), status)  
 }
+
 
 //helper method to render templates from the cache
 func (app *application) render(w http.ResponseWriter, r *http.Request, status int, page string, data templateData){
