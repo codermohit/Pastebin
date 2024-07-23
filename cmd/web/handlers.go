@@ -19,6 +19,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	data := app.newTemplateData(r)
 	data.Pastes = pastes
 
+  
 	//use the new render helper
 	app.render(w, r, http.StatusOK, "home.tmpl.html", data)
 }
