@@ -39,7 +39,6 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
   
   err := ts.ExecuteTemplate(buf, "base", data)
   if err != nil {
-    fmt.Println("Throwing error ")
     app.serverError(w, r, err)
     return
   }

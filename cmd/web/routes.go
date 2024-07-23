@@ -16,5 +16,5 @@ func (app *application) routes() http.Handler{
 	//Create the new route, which is restricted to POST requests only
 	mux.HandleFunc("POST /snippet/create", app.snippetCreatePost)
 
-  return commonHeaders(mux)
+  return app.logRequest(commonHeaders(mux))
 }
