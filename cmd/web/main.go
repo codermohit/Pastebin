@@ -8,15 +8,19 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"capybara.pastebin.xyz/internal/models"
+	"github.com/alexedwards/scs/mysqlstore"
+	"github.com/alexedwards/scs/v2"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type application struct {
-	logger        *slog.Logger
-	pastes        *models.PasteModel
-	templateCache map[string]*template.Template
+	logger         *slog.Logger
+	pastes         *models.PasteModel
+	templateCache  map[string]*template.Template
+	sessionManager *scs.SessionManager
 }
 
 func main() {
@@ -26,28 +30,35 @@ func main() {
 	//to be called before using the addr variable
 	flag.Parse()
 
+  //standard logger for logging information
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
+  //connecting to database 
 	db, err := openDB(*dsn)
-  if err != nil {
-    logger.Error(err.Error())
-    os.Exit(1)
-  }
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
 	defer db.Close()
 
+	//initialize a new template cache
+	templateCache, err := newTemplateCache()
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
 
-  //initialize a new template cache 
-  templateCache, err := newTemplateCache()
-  if err!=nil{
-    logger.Error(err.Error())
-    os.Exit(1)
-  }
+  //session manager for session management 
+  sessionManager := scs.New()
+  sessionManager.Store = mysqlstore.New(db)
+  sessionManager.Lifetime = 12*time.Hour
 
-
+  //application struct for dependency injection 
 	app := &application{
-		logger: logger,
-		pastes: &models.PasteModel{DB: db},
-    templateCache: templateCache,
+		logger:        logger,
+		pastes:        &models.PasteModel{DB: db},
+		templateCache: templateCache,
+    sessionManager: sessionManager,
 	}
 
 	//use the Info() method to log the starting server message at Info severity
