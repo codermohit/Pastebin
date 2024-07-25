@@ -52,6 +52,7 @@ func main() {
   sessionManager := scs.New()
   sessionManager.Store = mysqlstore.New(db)
   sessionManager.Lifetime = 12*time.Hour
+  sessionManager.Cookie.Secure = true
 
   //application struct for dependency injection 
 	app := &application{
@@ -61,14 +62,21 @@ func main() {
     sessionManager: sessionManager,
 	}
 
-	//use the Info() method to log the starting server message at Info severity
+  //new http.Server struct
+  srv := &http.Server{
+    Addr: *addr,
+    Handler: app.routes(),
+    ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
+  }
+
 	logger.Info("starting server", "addr", *addr)
 
-	err = http.ListenAndServe(*addr, app.routes())
+	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem") 
 
 	logger.Error(err.Error())
 	os.Exit(1)
 }
+
 
 func openDB(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("mysql", dsn)
