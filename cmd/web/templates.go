@@ -13,6 +13,7 @@ type templateData struct {
 	Pastes      []models.Paste
 	CurrentYear int
 	Form        any
+	Flash       string
 }
 
 func humanDate(t time.Time) string {

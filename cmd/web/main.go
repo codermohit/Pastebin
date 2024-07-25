@@ -75,12 +75,12 @@ func openDB(dsn string) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Connected to database")
 
 	err = db.Ping()
 	if err != nil {
 		db.Close()
+    return nil, err
 	}
-
+	fmt.Println("Connected to database")
 	return db, nil
 }
