@@ -20,6 +20,7 @@ import (
 type application struct {
 	logger         *slog.Logger
 	pastes         *models.PasteModel
+	users          *models.UserModel
 	templateCache  map[string]*template.Template
 	sessionManager *scs.SessionManager
 }
@@ -31,10 +32,10 @@ func main() {
 	//to be called before using the addr variable
 	flag.Parse()
 
-  //standard logger for logging information
+	//standard logger for logging information
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-  //connecting to database 
+	//connecting to database
 	db, err := openDB(*dsn)
 	if err != nil {
 		logger.Error(err.Error())
@@ -49,45 +50,44 @@ func main() {
 		os.Exit(1)
 	}
 
-  //session manager for session management 
-  sessionManager := scs.New()
-  sessionManager.Store = mysqlstore.New(db)
-  sessionManager.Lifetime = 12*time.Hour
-  sessionManager.Cookie.Secure = true
+	//session manager for session management
+	sessionManager := scs.New()
+	sessionManager.Store = mysqlstore.New(db)
+	sessionManager.Lifetime = 12 * time.Hour
+	sessionManager.Cookie.Secure = true
 
-  //application struct for dependency injection 
+	//application struct for dependency injection
 	app := &application{
-		logger:        logger,
-		pastes:        &models.PasteModel{DB: db},
-		templateCache: templateCache,
-    sessionManager: sessionManager,
+		logger:         logger,
+		pastes:         &models.PasteModel{DB: db},
+    users :         &models.UserModel{DB : db},
+		templateCache:  templateCache,
+		sessionManager: sessionManager,
 	}
 
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+	}
 
-  tlsConfig := &tls.Config{
-    CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
-  }
+	//new http.Server struct
+	srv := &http.Server{
+		Addr:      *addr,
+		Handler:   app.routes(),
+		ErrorLog:  slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		TLSConfig: tlsConfig,
 
-  //new http.Server struct
-  srv := &http.Server{
-    Addr: *addr,
-    Handler: app.routes(),
-    ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
-    TLSConfig: tlsConfig,
-
-    IdleTimeout: time.Minute,
-    ReadTimeout: 5*time.Second,
-    WriteTimeout: 10*time.Second,
-  }
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
 
 	logger.Info("starting server", "addr", *addr)
 
-	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem") 
+	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
 
 	logger.Error(err.Error())
 	os.Exit(1)
 }
-
 
 func openDB(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("mysql", dsn)
@@ -98,7 +98,7 @@ func openDB(dsn string) (*sql.DB, error) {
 	err = db.Ping()
 	if err != nil {
 		db.Close()
-    return nil, err
+		return nil, err
 	}
 	fmt.Println("Connected to database")
 	return db, nil
