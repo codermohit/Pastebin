@@ -1,32 +1,35 @@
 package main
 
 import (
-  "net/http"
-  "github.com/justinas/alice"
+	"net/http"
+
+	"github.com/justinas/alice"
 )
 
-func (app *application) routes() http.Handler{
+func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
 
 	//file server to serve files from the "./ui/static" directory.
 	fileServer := http.FileServer(http.Dir("./ui/static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static", fileServer))
 
-  dynamic := alice.New(app.sessionManager.LoadAndSave)
+	//unprotected routes, which don't need authentication
+	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf)
 
 	mux.Handle("GET /{$}", dynamic.ThenFunc(app.home))
 	mux.Handle("GET /snippet/view/{id}", dynamic.ThenFunc(app.snippetView))
-	mux.Handle("GET /snippet/create", dynamic.ThenFunc(app.snippetCreate))
+	mux.Handle("GET /user/signup", dynamic.ThenFunc(app.userSignup))
+	mux.Handle("POST /user/signup", dynamic.ThenFunc(app.userSignupPost))
+	mux.Handle("GET /user/login", dynamic.ThenFunc(app.userLogin))
+	mux.Handle("POST /user/login", dynamic.ThenFunc(app.userLoginPost))
+
+	//Protected (authenticated-only) application routes
+	protected := dynamic.Append(app.requireAuthentication)
+	mux.Handle("GET /snippet/create", protected.ThenFunc(app.snippetCreate))
 	//Create the new route, which is restricted to POST requests only
-	mux.Handle("POST /snippet/create", dynamic.ThenFunc(app.snippetCreatePost))
+	mux.Handle("POST /snippet/create", protected.ThenFunc(app.snippetCreatePost))
+	mux.Handle("POST /user/logout", protected.ThenFunc(app.userLogoutPost))
 
-  mux.Handle("GET /user/signup", dynamic.ThenFunc(app.userSignup)) 
-  mux.Handle("POST /user/signup", dynamic.ThenFunc(app.userSignupPost)) 
-  mux.Handle("GET /user/login", dynamic.ThenFunc(app.userLogin)) 
-  mux.Handle("POST /user/login", dynamic.ThenFunc(app.userLoginPost)) 
-  mux.Handle("POST /user/logout", dynamic.ThenFunc(app.userLogoutPost)) 
-  
-
-  standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders) 
-  return standard.Then(mux) 
+	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)
+	return standard.Then(mux)
 }
