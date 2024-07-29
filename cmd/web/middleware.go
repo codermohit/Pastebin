@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
-  "github.com/justinas/nosurf"
+	"github.com/justinas/nosurf"
+	"golang.org/x/net/context"
 )
 
 func commonHeaders(next http.Handler) http.Handler {
@@ -73,4 +75,35 @@ func noSurf(next http.Handler) http.Handler{
   })
 
   return csrfHandler
+}
+
+func (app *application) authenticate(next http.Handler) http.Handler {
+  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    /*
+    Check if the client request has the authenticatedUserID in the session cookie 
+    1) If not, let it pass, will be taken care of by the requireAuthentication() middleware
+    in case it tries to access authorized resources
+    2) If authenticatedUserID exists in the session cookie, check for the authenticatedUserID in the 
+    database , if it doesn't exist in the DB throw an error else call the next handler 
+    */
+    id := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+    if id == 0 {
+      next.ServeHTTP(w, r)
+      return
+    }
+
+    //check if a user with 'id' exists
+    exists, err := app.users.Exists(id)
+    if err != nil {
+      app.serverError(w, r , err)
+      return
+    }
+
+    if exists {
+      ctx := context.WithValue(r.Context(),isAuthenticatedContextKey,true)
+      r = r.WithContext(ctx)
+    }
+
+    next.ServeHTTP(w, r)
+  })
 }
