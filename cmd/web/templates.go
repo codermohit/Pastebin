@@ -9,11 +9,13 @@ import (
 )
 
 type templateData struct {
-	Paste       models.Paste
-	Pastes      []models.Paste
-	CurrentYear int
-	Form        any
-	Flash       string
+	Paste           models.Paste
+	Pastes          []models.Paste
+	CurrentYear     int
+	Form            any
+	Flash           string
+	IsAuthenticated bool
+  CSRFToken       string
 }
 
 func humanDate(t time.Time) string {
