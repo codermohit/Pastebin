@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"capybara.pastebin.xyz/ui"
 	"github.com/justinas/alice"
 )
 
@@ -10,8 +11,8 @@ func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
 
 	//file server to serve files from the "./ui/static" directory.
-	fileServer := http.FileServer(http.Dir("./ui/static"))
-	mux.Handle("GET /static/", http.StripPrefix("/static", fileServer))
+	//fileServer := http.FileServer(http.Dir("./ui/static"))
+	mux.Handle("GET /static/", http.FileServerFS(ui.Files))
 
 	//unprotected routes, which don't need authentication
 	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
